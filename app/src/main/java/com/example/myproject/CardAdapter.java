@@ -44,9 +44,16 @@ public class CardAdapter extends RecyclerView.Adapter<CardAdapter.ViewHolder> {
         Card card = cards.get(position);
         holder.title.setText(card.title);
 
+        // Показываем время последнего обновления или создания
+        long timeToShow = (card.updatedAt != 0) ? card.updatedAt : card.createdAt;
         String date = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
-                .format(new Date(card.createdAt * 1000));
-        holder.date.setText(date);
+                .format(new Date(timeToShow * 1000));
+
+        if (card.updatedAt != 0 && card.updatedAt != card.createdAt) {
+            holder.date.setText("Обновлено: " + date);
+        } else {
+            holder.date.setText("Создано: " + date);
+        }
 
         holder.itemView.setOnClickListener(v -> clickListener.onCardClick(card));
         holder.btnDelete.setOnClickListener(v -> deleteListener.onCardDelete(card));

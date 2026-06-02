@@ -2,13 +2,9 @@ package com.example.myproject;
 
 import android.net.Uri;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.WebView;
-import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -20,7 +16,7 @@ import java.util.List;
 public class RedactCardActivity extends AppCompatActivity {
 
     private LinearLayout editorContainer;
-    private EditText etCardTitle;
+    private TextView tvCardTitle; // Изменено с EditText на TextView
     private DatabaseHelper dbHelper;
     private long currentCardId = -1;
     private String cardTitle = "Новая карточка";
@@ -32,7 +28,7 @@ public class RedactCardActivity extends AppCompatActivity {
 
         dbHelper = new DatabaseHelper(this);
         editorContainer = findViewById(R.id.editorContainer);
-        etCardTitle = findViewById(R.id.etCardTitle);
+        tvCardTitle = findViewById(R.id.etCardTitle); // Теперь это TextView
 
         // Получаем ID карточки если редактируем
         currentCardId = getIntent().getLongExtra("card_id", -1);
@@ -41,22 +37,32 @@ public class RedactCardActivity extends AppCompatActivity {
             cardTitle = "Новая карточка";
         }
 
-        // Устанавливаем название и слушаем его изменения
-        etCardTitle.setText(cardTitle);
-        etCardTitle.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override
-            public void afterTextChanged(Editable s) {
-                cardTitle = s.toString().trim();
-                if (cardTitle.isEmpty()) cardTitle = "Без названия";
-                autoSave();
-            }
-        });
+        // Устанавливаем название
+        tvCardTitle.setText(cardTitle);
+
+        // Обработчик нажатия на название для редактирования
+        tvCardTitle.setOnClickListener(v -> openTitleRedactDialog());
 
         if (currentCardId != -1) {
             loadCardData();
         }
+    }
+
+    // Открыть диалог редактирования названия
+    private void openTitleRedactDialog() {
+        TitleRedactFragment dialog = new TitleRedactFragment();
+
+        Bundle args = new Bundle();
+        args.putString("current_title", cardTitle);
+        dialog.setArguments(args);
+
+        dialog.setOnTitleChangedListener(newTitle -> {
+            cardTitle = newTitle;
+            tvCardTitle.setText(cardTitle);
+            autoSave(); // Сохраняем изменения
+        });
+
+        dialog.show(getSupportFragmentManager(), "title_redact_dialog");
     }
 
     // ─── Загрузка данных ──────────────────────────────────────────────────────
@@ -90,10 +96,6 @@ public class RedactCardActivity extends AppCompatActivity {
 
     // ─── Автосохранение ───────────────────────────────────────────────────────
 
-    /**
-     * Собирает текущее состояние редактора и сохраняет/обновляет карточку в БД.
-     * Если карточка ещё не создана — создаёт её и запоминает ID.
-     */
     private void autoSave() {
         List<CardItem> items = collectItems();
 
@@ -118,11 +120,10 @@ public class RedactCardActivity extends AppCompatActivity {
                 item.content = (String) child.getTag();
             } else if (child instanceof ImageView) {
                 item.type = "image";
-                // URI сохранён в теге при создании ImageView
                 Object tag = child.getTag();
                 item.content = (tag instanceof String) ? (String) tag : "";
             } else {
-                continue; // пропускаем служебные View, если есть
+                continue;
             }
 
             items.add(item);
@@ -163,7 +164,7 @@ public class RedactCardActivity extends AppCompatActivity {
         dialog.setOnTextAddedListener(text -> {
             TextView tv = createTextView(text);
             editorContainer.addView(tv);
-            autoSave(); // ← сохраняем после добавления
+            autoSave();
         });
         dialog.show(getSupportFragmentManager(), "text_dialog");
     }
@@ -177,11 +178,11 @@ public class RedactCardActivity extends AppCompatActivity {
 
         dialog.setOnTextChangedListener(newText -> {
             tv.setText(newText);
-            autoSave(); // ← сохраняем после изменения
+            autoSave();
         });
         dialog.setOnDeleteListener(() -> {
             editorContainer.removeView(tv);
-            autoSave(); // ← сохраняем после удаления
+            autoSave();
         });
 
         dialog.show(getSupportFragmentManager(), "text_redact_dialog");
@@ -211,7 +212,7 @@ public class RedactCardActivity extends AppCompatActivity {
         dialog.setOnFormulaAddedListener(latex -> {
             WebView wv = createFormulaView(latex);
             editorContainer.addView(wv);
-            autoSave(); // ← сохраняем после добавления
+            autoSave();
         });
         dialog.show(getSupportFragmentManager(), "form_dialog");
     }
@@ -226,11 +227,11 @@ public class RedactCardActivity extends AppCompatActivity {
         dialog.setOnFormulaAddedListener(latex -> {
             wv.setTag(latex);
             KaTeXWebView.render(wv, latex);
-            autoSave(); // ← сохраняем после изменения
+            autoSave();
         });
         dialog.setOnDeleteListener(() -> {
             editorContainer.removeView(wv);
-            autoSave(); // ← сохраняем после удаления
+            autoSave();
         });
 
         dialog.show(getSupportFragmentManager(), "form_redact_dialog");
@@ -241,7 +242,7 @@ public class RedactCardActivity extends AppCompatActivity {
     private ImageView createImageView(Uri uri, String uriString) {
         ImageView iv = new ImageView(this);
         iv.setImageURI(uri);
-        iv.setTag(uriString); // сохраняем URI строкой для последующего сохранения в БД
+        iv.setTag(uriString);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 400);
         lp.setMargins(0, 0, 0, 16);
@@ -255,7 +256,7 @@ public class RedactCardActivity extends AppCompatActivity {
         dialog.setOnImageAddedListener(uri -> {
             ImageView iv = createImageView(uri, uri.toString());
             editorContainer.addView(iv);
-            autoSave(); // ← сохраняем после добавления
+            autoSave();
         });
         dialog.show(getSupportFragmentManager(), "img_dialog");
     }
