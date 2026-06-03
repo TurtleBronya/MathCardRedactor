@@ -1,7 +1,10 @@
 package com.example.myproject;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Base64;
 import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.WebView;
@@ -31,16 +34,20 @@ public class RedactCardActivity extends AppCompatActivity {
         tvCardTitle = findViewById(R.id.etCardTitle);
 
 
+        if (editorContainer instanceof LinearLayout) {
+            LinearLayout linearLayout = (LinearLayout) editorContainer;
+            linearLayout.setOrientation(LinearLayout.VERTICAL);
+            linearLayout.setPadding(0, 8, 0, 8);
+            linearLayout.setShowDividers(LinearLayout.SHOW_DIVIDER_NONE);
+        }
+
         currentCardId = getIntent().getLongExtra("card_id", -1);
         cardTitle = getIntent().getStringExtra("card_title");
         if (cardTitle == null) {
             cardTitle = "Новая карточка";
         }
 
-
         tvCardTitle.setText(cardTitle);
-
-
         tvCardTitle.setOnClickListener(v -> openTitleRedactDialog());
 
         if (currentCardId != -1) {
@@ -83,13 +90,11 @@ public class RedactCardActivity extends AppCompatActivity {
         if (item.type.equals("text")) {
             TextView tv = createTextView(item.content);
             editorContainer.addView(tv);
-
         } else if (item.type.equals("formula")) {
             WebView wv = createFormulaView(item.content);
             editorContainer.addView(wv);
-
         } else if (item.type.equals("image")) {
-            ImageView iv = createImageView(Uri.parse(item.content), item.content);
+            ImageView iv = createImageView(item.content);
             editorContainer.addView(iv);
         }
     }
@@ -149,12 +154,13 @@ public class RedactCardActivity extends AppCompatActivity {
         TextView tv = new TextView(this);
         tv.setText(text);
         tv.setTextSize(16f);
-        tv.setPadding(8, 8, 8, 8);
+        tv.setPadding(16, 12, 16, 12);  // Уменьшил паддинги с 8 до 12 по вертикали
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.setMargins(0, 0, 0, 16);
+        lp.setMargins(16, 0, 16, 8);  // Уменьшил нижний отступ с 16 до 8dp
         tv.setLayoutParams(lp);
+        tv.setBackgroundResource(R.drawable.edit_bg);  // Добавляем фон для красоты
         tv.setOnClickListener(v -> openTextRedactDialog(tv));
         return tv;
     }
@@ -195,9 +201,11 @@ public class RedactCardActivity extends AppCompatActivity {
         KaTeXWebView.render(wv, latex);
         wv.setTag(latex);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 200);
-        lp.setMargins(0, 0, 0, 16);
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                150);  // Уменьшил высоту с 200 до 150dp
+        lp.setMargins(16, 0, 16, 8);  // Уменьшил нижний отступ с 16 до 8dp
         wv.setLayoutParams(lp);
+        wv.setBackgroundResource(R.drawable.edit_bg);
         wv.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_UP) {
                 openFormulaRedactDialog(wv);
@@ -238,26 +246,105 @@ public class RedactCardActivity extends AppCompatActivity {
     }
 
     // ─── Image ────────────────────────────────────────────────────────────────
-
-    private ImageView createImageView(Uri uri, String uriString) {
-        ImageView iv = new ImageView(this);
-        iv.setImageURI(uri);
-        iv.setTag(uriString);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 400);
-        lp.setMargins(0, 0, 0, 16);
-        iv.setLayoutParams(lp);
-        iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        return iv;
-    }
-
     private void openImageDialog() {
         ImgFragment dialog = new ImgFragment();
-        dialog.setOnImageAddedListener(uri -> {
-            ImageView iv = createImageView(uri, uri.toString());
+        dialog.setOnImageAddedListener(imageBase64 -> {
+            ImageView iv = createImageView(imageBase64);
             editorContainer.addView(iv);
             autoSave();
         });
         dialog.show(getSupportFragmentManager(), "img_dialog");
     }
+    private void openImageRedactDialog(ImageView iv, String imageBase64) {
+        ImgRedactFragment dialog = new ImgRedactFragment();
+
+        Bundle args = new Bundle();
+        args.putString("current_image", imageBase64);
+        dialog.setArguments(args);
+
+        dialog.setOnImageChangedListener(new ImgRedactFragment.OnImageChangedListener() {
+            @Override
+            public void onImageUpdated(String newImageBase64) {
+                // Обновляем изображение
+                updateImageView(iv, newImageBase64);
+                autoSave();
+            }
+
+            @Override
+            public void onImageDeleted() {
+                // Удаляем изображение
+                editorContainer.removeView(iv);
+                autoSave();
+            }
+        });
+
+        dialog.show(getSupportFragmentManager(), "img_redact_dialog");
+    }
+
+    // Обновление ImageView с новым Base64
+    private void updateImageView(ImageView iv, String imageBase64) {
+        try {
+            byte[] decodedString = Base64.decode(imageBase64, Base64.DEFAULT);
+            Bitmap decodedBitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+            iv.setImageBitmap(decodedBitmap);
+            iv.setTag(imageBase64);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Обновите метод createImageView
+    private ImageView createImageView(String imageBase64) {
+        ImageView iv = new ImageView(this);
+        iv.setTag(imageBase64);
+
+        if (imageBase64 != null && !imageBase64.isEmpty()) {
+            try {
+                byte[] decodedString = Base64.decode(imageBase64, Base64.DEFAULT);
+                Bitmap decodedBitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+                iv.setImageBitmap(decodedBitmap);
+
+                // Подстраиваем размер под изображение
+                int imageWidth = decodedBitmap.getWidth();
+                int imageHeight = decodedBitmap.getHeight();
+                int screenWidth = getResources().getDisplayMetrics().widthPixels;
+                int maxWidth = screenWidth - 64; // отступы 32dp с каждой стороны
+
+                int scaledHeight = (int) ((float) imageHeight * maxWidth / imageWidth);
+
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        maxWidth,
+                        scaledHeight);
+                lp.setMargins(16, 0, 16, 8);  // Уменьшил нижний отступ с 16 до 8dp, убрал верхний
+                iv.setLayoutParams(lp);
+                iv.setScaleType(ImageView.ScaleType.FIT_XY);
+                iv.setAdjustViewBounds(true);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                iv.setImageResource(android.R.drawable.ic_menu_gallery);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        250);  // Уменьшил высоту с 400 до 250dp для ошибок
+                lp.setMargins(16, 0, 16, 8);
+                iv.setLayoutParams(lp);
+                iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            }
+        } else {
+            iv.setImageResource(android.R.drawable.ic_menu_gallery);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    250);  // Уменьшил высоту с 400 до 250dp
+            lp.setMargins(16, 0, 16, 8);
+            iv.setLayoutParams(lp);
+            iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        }
+
+        iv.setOnClickListener(v -> openImageRedactDialog(iv, (String) iv.getTag()));
+
+        return iv;
+    }
+
+
+
 }

@@ -15,13 +15,15 @@
         android:textStyle="bold"
         android:layout_marginBottom="12dp"/>
 
+    <!-- Фиксированный размер ImageView в диалоге -->
     <ImageView
         android:id="@+id/ivPreview"
         android:layout_width="match_parent"
-        android:layout_height="180dp"
+        android:layout_height="300dp"
         android:scaleType="centerCrop"
         android:background="@drawable/edit_bg"
-        android:visibility="gone"/>
+        android:visibility="gone"
+        android:layout_marginBottom="8dp"/>
 
     <Button
         android:id="@+id/btnPickImage"
