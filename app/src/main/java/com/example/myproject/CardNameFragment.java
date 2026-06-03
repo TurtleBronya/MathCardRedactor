@@ -34,7 +34,7 @@ public class CardNameFragment extends DialogFragment {
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireActivity());
 
-        // Инфлейтим кастомный layout для диалога
+
         View view = LayoutInflater.from(requireContext())
                 .inflate(R.layout.dialog_card_name, null);
 
@@ -71,7 +71,7 @@ public class CardNameFragment extends DialogFragment {
     @Override
     public void onStart() {
         super.onStart();
-        // Настраиваем ширину диалога
+
         if (getDialog() != null) {
             getDialog().getWindow().setLayout(
                     ViewGroup.LayoutParams.MATCH_PARENT,

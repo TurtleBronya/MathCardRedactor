@@ -38,6 +38,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Отмена"
+            android:textColor="@color/blue"
             android:layout_marginEnd="8dp"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
 
@@ -46,6 +47,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Изменить"/>
+            android:backgroundTint="@color/blue"
+            android:text="Изменить" />
     </LinearLayout>
 </LinearLayout>

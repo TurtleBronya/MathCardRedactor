@@ -2,9 +2,10 @@ package com.example.myproject;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.TextView;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -15,6 +16,8 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private CardAdapter cardAdapter;
     private DatabaseHelper dbHelper;
+    private EditText searchBar;
+    private ImageButton btnSearchCard;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,27 +29,51 @@ public class MainActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
+        searchBar = findViewById(R.id.Searchbar);
+
+
         FloatingActionButton fab = findViewById(R.id.fabCreate);
         fab.setOnClickListener(v -> showCreateCardDialog());
 
+        setupSearch();
+
         loadCards();
     }
-    @Override
-    protected void onResume() {
-        super.onResume();
-        loadCards();
+
+    private void setupSearch() {
+
+        searchBar.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                performSearch(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
     }
+
+    private void performSearch(String query) {
+        List<Card> cards = dbHelper.searchCards(query);
+        updateAdapter(cards);
+    }
+
     private void loadCards() {
-        List<Card> cards = dbHelper.getAllCards();
+        performSearch("");
+    }
+
+    private void updateAdapter(List<Card> cards) {
         if (cardAdapter == null) {
             cardAdapter = new CardAdapter(cards, card -> {
-                // Открыть карточку для редактирования
                 Intent intent = new Intent(this, RedactCardActivity.class);
                 intent.putExtra("card_id", card.id);
                 intent.putExtra("card_title", card.title);
                 startActivity(intent);
             }, card -> {
-                // Удалить карточку
                 dbHelper.deleteCard(card.id);
                 loadCards();
             });
@@ -55,14 +82,16 @@ public class MainActivity extends AppCompatActivity {
             cardAdapter.updateCards(cards);
         }
     }
-    private void createNewCard() {
-        Intent intent = new Intent(this, RedactCardActivity.class);
-        startActivity(intent);
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadCards();
     }
+
     private void showCreateCardDialog() {
         CardNameFragment dialog = new CardNameFragment();
         dialog.setOnCardNameListener(cardName -> {
-            // Передаём название в RedactCardActivity
             Intent intent = new Intent(this, RedactCardActivity.class);
             intent.putExtra("card_title", cardName);
             startActivity(intent);

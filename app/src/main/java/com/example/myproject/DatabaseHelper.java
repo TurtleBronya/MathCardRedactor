@@ -13,7 +13,7 @@ import java.util.List;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "cards.db";
-    private static final int DATABASE_VERSION = 3; // Увеличиваем версию до 3
+    private static final int DATABASE_VERSION = 3;
 
     public static final String TABLE_CARDS   = "cards";
     public static final String COLUMN_ID         = "_id";
@@ -57,72 +57,75 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Log.d("DatabaseHelper", "Upgrading database from version " + oldVersion + " to " + newVersion);
-
         if (oldVersion < 2) {
-            // Добавляем колонку updated_at
             try {
                 db.execSQL("ALTER TABLE " + TABLE_CARDS + " ADD COLUMN " + COLUMN_UPDATED_AT + " INTEGER DEFAULT 0");
-                // Заполняем updated_at значениями из created_at для существующих записей
                 db.execSQL("UPDATE " + TABLE_CARDS + " SET " + COLUMN_UPDATED_AT + " = " + COLUMN_CREATED_AT);
-                Log.d("DatabaseHelper", "Added updated_at column");
             } catch (Exception e) {
                 Log.e("DatabaseHelper", "Error adding updated_at column", e);
             }
         }
-
-        if (oldVersion < 3) {
-            // Здесь можно добавить другие изменения для версии 3
-            Log.d("DatabaseHelper", "Upgrade to version 3 completed");
-        }
     }
 
-    // ─── Сохранить новую карточку ─────────────────────────────────────────────
 
-    public long saveCard(String title, List<CardItem> items) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        db.beginTransaction();
+
+    public List<Card> searchCards(String query) {
+        List<Card> cards = new ArrayList<>();
+
+
+        if (query == null || query.trim().isEmpty()) {
+            return getAllCards();
+        }
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = null;
+
         try {
-            ContentValues cv = new ContentValues();
-            cv.put(COLUMN_TITLE, title);
-            long currentTime = System.currentTimeMillis() / 1000;
-            cv.put(COLUMN_UPDATED_AT, currentTime);
-            long cardId = db.insert(TABLE_CARDS, null, cv);
 
-            insertItems(db, cardId, items);
+            String searchPattern = "%" + query.trim() + "%";
 
-            db.setTransactionSuccessful();
-            return cardId;
+            String sql = "SELECT * FROM " + TABLE_CARDS +
+                    " WHERE " + COLUMN_TITLE + " LIKE ?" +
+                    " ORDER BY " + COLUMN_UPDATED_AT + " DESC";
+
+            cursor = db.rawQuery(sql, new String[]{searchPattern});
+
+            while (cursor.moveToNext()) {
+                Card card = new Card();
+                card.id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_ID));
+                card.title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE));
+                card.createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_CREATED_AT));
+
+                try {
+                    int updatedIndex = cursor.getColumnIndex(COLUMN_UPDATED_AT);
+                    card.updatedAt = (updatedIndex != -1) ?
+                            cursor.getLong(updatedIndex) : card.createdAt;
+                } catch (Exception e) {
+                    card.updatedAt = card.createdAt;
+                }
+
+                card.items = getCardItems(db, card.id);
+                cards.add(card);
+            }
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Error searching cards", e);
         } finally {
-            db.endTransaction();
+            if (cursor != null) cursor.close();
         }
+
+        return cards;
     }
 
-    // ─── Загрузить все карточки ───────────────────────────────────────────────
+
 
     public List<Card> getAllCards() {
         List<Card> cards = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = null;
-        try {
-            // Проверяем существует ли колонка updated_at
-            boolean hasUpdatedAt = false;
-            try {
-                Cursor testCursor = db.rawQuery("PRAGMA table_info(" + TABLE_CARDS + ")", null);
-                while (testCursor.moveToNext()) {
-                    String columnName = testCursor.getString(testCursor.getColumnIndex("name"));
-                    if (COLUMN_UPDATED_AT.equals(columnName)) {
-                        hasUpdatedAt = true;
-                        break;
-                    }
-                }
-                testCursor.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
 
-            String orderColumn = hasUpdatedAt ? COLUMN_UPDATED_AT : COLUMN_CREATED_AT;
+        try {
             cursor = db.rawQuery(
-                    "SELECT * FROM " + TABLE_CARDS + " ORDER BY " + orderColumn + " DESC",
+                    "SELECT * FROM " + TABLE_CARDS + " ORDER BY " + COLUMN_UPDATED_AT + " DESC",
                     null);
 
             while (cursor.moveToNext()) {
@@ -131,7 +134,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 card.title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE));
                 card.createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_CREATED_AT));
 
-                // Получаем updated_at, если колонка существует
                 try {
                     int updatedIndex = cursor.getColumnIndex(COLUMN_UPDATED_AT);
                     card.updatedAt = (updatedIndex != -1) ?
@@ -145,22 +147,27 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             }
         } finally {
             if (cursor != null) cursor.close();
-            db.close();
         }
         return cards;
     }
 
-    // ─── Загрузить элементы карточки ─────────────────────────────────────────
+
+    public List<CardItem> getCardItems(long cardId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return getCardItems(db, cardId);
+    }
 
     private List<CardItem> getCardItems(SQLiteDatabase db, long cardId) {
         List<CardItem> items = new ArrayList<>();
         Cursor cursor = null;
+
         try {
             cursor = db.rawQuery(
                     "SELECT * FROM " + TABLE_ITEMS +
                             " WHERE " + COLUMN_CARD_ID + " = ?" +
                             " ORDER BY " + COLUMN_ORDER,
                     new String[]{String.valueOf(cardId)});
+
             while (cursor.moveToNext()) {
                 CardItem item = new CardItem();
                 item.type = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TYPE));
@@ -173,7 +180,27 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return items;
     }
 
-    // ─── Обновить карточку ────────────────────────────────────────────────────
+
+
+    public long saveCard(String title, List<CardItem> items) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
+        try {
+            ContentValues cv = new ContentValues();
+            cv.put(COLUMN_TITLE, title);
+            long currentTime = System.currentTimeMillis() / 1000;
+            cv.put(COLUMN_UPDATED_AT, currentTime);
+            long cardId = db.insert(TABLE_CARDS, null, cv);
+
+            insertItems(db, cardId, items);
+            db.setTransactionSuccessful();
+            return cardId;
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+
 
     public void updateCard(long cardId, String title, List<CardItem> items) {
         SQLiteDatabase db = this.getWritableDatabase();
@@ -189,15 +216,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     new String[]{String.valueOf(cardId)});
 
             insertItems(db, cardId, items);
-
             db.setTransactionSuccessful();
         } finally {
             db.endTransaction();
-            db.close();
         }
     }
 
-    // ─── Удалить карточку ─────────────────────────────────────────────────────
+
 
     public void deleteCard(long cardId) {
         SQLiteDatabase db = this.getWritableDatabase();
@@ -208,7 +233,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
-    // ─── Вспомогательный метод вставки элементов ──────────────────────────────
+
 
     private void insertItems(SQLiteDatabase db, long cardId, List<CardItem> items) {
         for (int i = 0; i < items.size(); i++) {

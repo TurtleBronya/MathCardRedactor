@@ -16,7 +16,7 @@ import java.util.List;
 public class RedactCardActivity extends AppCompatActivity {
 
     private LinearLayout editorContainer;
-    private TextView tvCardTitle; // Изменено с EditText на TextView
+    private TextView tvCardTitle;
     private DatabaseHelper dbHelper;
     private long currentCardId = -1;
     private String cardTitle = "Новая карточка";
@@ -28,19 +28,19 @@ public class RedactCardActivity extends AppCompatActivity {
 
         dbHelper = new DatabaseHelper(this);
         editorContainer = findViewById(R.id.editorContainer);
-        tvCardTitle = findViewById(R.id.etCardTitle); // Теперь это TextView
+        tvCardTitle = findViewById(R.id.etCardTitle);
 
-        // Получаем ID карточки если редактируем
+
         currentCardId = getIntent().getLongExtra("card_id", -1);
         cardTitle = getIntent().getStringExtra("card_title");
         if (cardTitle == null) {
             cardTitle = "Новая карточка";
         }
 
-        // Устанавливаем название
+
         tvCardTitle.setText(cardTitle);
 
-        // Обработчик нажатия на название для редактирования
+
         tvCardTitle.setOnClickListener(v -> openTitleRedactDialog());
 
         if (currentCardId != -1) {
@@ -48,7 +48,7 @@ public class RedactCardActivity extends AppCompatActivity {
         }
     }
 
-    // Открыть диалог редактирования названия
+
     private void openTitleRedactDialog() {
         TitleRedactFragment dialog = new TitleRedactFragment();
 
@@ -59,13 +59,13 @@ public class RedactCardActivity extends AppCompatActivity {
         dialog.setOnTitleChangedListener(newTitle -> {
             cardTitle = newTitle;
             tvCardTitle.setText(cardTitle);
-            autoSave(); // Сохраняем изменения
+            autoSave();
         });
 
         dialog.show(getSupportFragmentManager(), "title_redact_dialog");
     }
 
-    // ─── Загрузка данных ──────────────────────────────────────────────────────
+
 
     private void loadCardData() {
         List<Card> cards = dbHelper.getAllCards();
@@ -94,7 +94,7 @@ public class RedactCardActivity extends AppCompatActivity {
         }
     }
 
-    // ─── Автосохранение ───────────────────────────────────────────────────────
+
 
     private void autoSave() {
         List<CardItem> items = collectItems();
@@ -131,7 +131,7 @@ public class RedactCardActivity extends AppCompatActivity {
         return items;
     }
 
-    // ─── Обработка кнопок панели ──────────────────────────────────────────────
+
 
     public void onClick(View v) {
         if (v.getId() == R.id.btntext) {

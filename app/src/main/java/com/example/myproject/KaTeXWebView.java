@@ -11,14 +11,14 @@ import java.util.stream.Collectors;
 
 public class KaTeXWebView {
 
-    /** Создаёт настроенный WebView — используй вместо new WebView() везде где нужен KaTeX. */
+
     public static WebView create(Context context) {
         WebView wv = new WebView(context);
         configure(wv);
         return wv;
     }
 
-    /** Рендерит latex в уже существующий WebView. */
+
     public static void render(WebView wv, String latex) {
         try {
             BufferedReader reader = new BufferedReader(

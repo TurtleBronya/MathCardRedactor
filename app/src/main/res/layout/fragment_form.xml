@@ -31,6 +31,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="Предпросмотр"
+        android:textColor="@color/blue"
         style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
 
     <!-- Заменили TextView на WebView для KaTeX-рендера -->
@@ -54,6 +55,7 @@
             android:layout_weight="1"
             android:text="Отмена"
             android:layout_marginEnd="8dp"
+            android:textColor="@color/blue"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
 
         <Button
@@ -61,6 +63,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Добавить"/>
+            android:text="Добавить"
+            android:backgroundTint="@color/blue"/>
     </LinearLayout>
 </LinearLayout>

@@ -54,12 +54,12 @@ public class TextRedactFragment extends DialogFragment {
         Button btnRedact  = view.findViewById(R.id.btnRedact);
         Button btnCancel  = view.findViewById(R.id.btnCancel);
 
-        // Подставляем прошлый текст из аргументов
+
         Bundle args = getArguments();
         if (args != null) {
             String initialText = args.getString("initial_text", "");
             editText.setText(initialText);
-            editText.setSelection(initialText.length()); // курсор в конец
+            editText.setSelection(initialText.length());
         }
 
         btnRedact.setOnClickListener(v -> {

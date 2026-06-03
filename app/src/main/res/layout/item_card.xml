@@ -38,7 +38,7 @@
             android:id="@+id/btnDeleteCard"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:src="@android:drawable/ic_menu_delete"
+            android:src="@drawable/delete_icon"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"

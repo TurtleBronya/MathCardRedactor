@@ -41,7 +41,7 @@ public class TitleRedactFragment extends DialogFragment {
         btnRedact = view.findViewById(R.id.btnRedact);
         btnCancel = view.findViewById(R.id.btnCancel);
 
-        // Устанавливаем текущее название
+
         if (currentTitle != null) {
             editTextContent.setText(currentTitle);
             editTextContent.setSelection(editTextContent.getText().length());
