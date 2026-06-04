@@ -155,12 +155,12 @@ public class RedactCardActivity extends AppCompatActivity {
     private TextView createTextView(String text) {
         TextView tv = new TextView(this);
         tv.setText(text);
-        tv.setTextSize(16f);
-        tv.setPadding(16, 12, 16, 12);  // Уменьшил паддинги с 8 до 12 по вертикали
+        tv.setTextSize(20f);
+        tv.setPadding(16, 12, 16, 12);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.setMargins(16, 0, 16, 8);  // Уменьшил нижний отступ с 16 до 8dp
+        lp.setMargins(16, 0, 16, 8);
         tv.setLayoutParams(lp);
 
         tv.setOnClickListener(v -> openTextRedactDialog(tv));
@@ -203,7 +203,7 @@ public class RedactCardActivity extends AppCompatActivity {
         KaTeXWebView.render(wv, latex);
         wv.setTag(latex);
 
-        // Вычисляем масштаб в зависимости от длины формулы
+
         int scale = calculateScaleForLatex(latex);
 
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -213,8 +213,8 @@ public class RedactCardActivity extends AppCompatActivity {
         wv.setLayoutParams(lp);
         wv.setBackgroundResource(R.drawable.edit_bg);
 
-        // Устанавливаем фон для WebView
-        wv.setBackgroundColor(getColor(R.color.grey_white));// #F9F9F9 в ARGB формате
+
+        wv.setBackgroundColor(getColor(R.color.grey_white));
 
         WebSettings webSettings = wv.getSettings();
         webSettings.setSupportZoom(true);
@@ -360,14 +360,12 @@ public class RedactCardActivity extends AppCompatActivity {
         dialog.setOnImageChangedListener(new ImgRedactFragment.OnImageChangedListener() {
             @Override
             public void onImageUpdated(String newImageBase64) {
-                // Обновляем изображение
                 updateImageView(iv, newImageBase64);
                 autoSave();
             }
 
             @Override
             public void onImageDeleted() {
-                // Удаляем изображение
                 editorContainer.removeView(iv);
                 autoSave();
             }
@@ -376,7 +374,6 @@ public class RedactCardActivity extends AppCompatActivity {
         dialog.show(getSupportFragmentManager(), "img_redact_dialog");
     }
 
-    // Обновление ImageView с новым Base64
     private void updateImageView(ImageView iv, String imageBase64) {
         try {
             byte[] decodedString = Base64.decode(imageBase64, Base64.DEFAULT);
@@ -388,7 +385,6 @@ public class RedactCardActivity extends AppCompatActivity {
         }
     }
 
-    // Обновите метод createImageView
     private ImageView createImageView(String imageBase64) {
         ImageView iv = new ImageView(this);
         iv.setTag(imageBase64);
@@ -399,26 +395,24 @@ public class RedactCardActivity extends AppCompatActivity {
                 Bitmap decodedBitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
                 iv.setImageBitmap(decodedBitmap);
 
-                // ТОЛЬКО ЗДЕСЬ подстраиваем размер под изображение
                 int imageWidth = decodedBitmap.getWidth();
                 int imageHeight = decodedBitmap.getHeight();
                 int screenWidth = getResources().getDisplayMetrics().widthPixels;
                 int maxWidth = screenWidth - 64; // отступы 32dp с каждой стороны
 
-                // Вычисляем высоту с сохранением пропорций
+
                 int scaledHeight = (int) ((float) imageHeight * maxWidth / imageWidth);
 
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         maxWidth,
                         scaledHeight);
-                lp.setMargins(16, 8, 16, 16); // отступы для красивого отображения
+                lp.setMargins(16, 8, 16, 16);
                 iv.setLayoutParams(lp);
                 iv.setScaleType(ImageView.ScaleType.FIT_XY);
                 iv.setAdjustViewBounds(true);
 
             } catch (Exception e) {
                 e.printStackTrace();
-                // Если ошибка, устанавливаем стандартный размер
                 iv.setImageResource(android.R.drawable.ic_menu_gallery);
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
@@ -428,7 +422,6 @@ public class RedactCardActivity extends AppCompatActivity {
                 iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
             }
         } else {
-            // Если нет изображения, устанавливаем заглушку со стандартным размером
             iv.setImageResource(android.R.drawable.ic_menu_gallery);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
@@ -438,7 +431,6 @@ public class RedactCardActivity extends AppCompatActivity {
             iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
         }
 
-        // Добавляем клик для редактирования
         iv.setOnClickListener(v -> openImageRedactDialog(iv, (String) iv.getTag()));
 
         return iv;
