@@ -1,27 +1,26 @@
 package com.example.myproject;
 
 import android.app.Activity;
-import android.content.ContentResolver;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.fragment.app.DialogFragment;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 
 public class ImgFragment extends DialogFragment {
 
@@ -30,9 +29,10 @@ public class ImgFragment extends DialogFragment {
     }
 
     private OnImageAddedListener listener;
-    private Uri selectedUri = null;
     private ImageView ivPreview;
-    private String tempImageBase64 = null;
+    private Bitmap currentBitmap = null;
+    private float currentRotation = 0f;
+    private static final int PICK_IMAGE_REQUEST = 1;
 
     public void setOnImageAddedListener(OnImageAddedListener l) {
         this.listener = l;
@@ -42,56 +42,23 @@ public class ImgFragment extends DialogFragment {
     public void onStart() {
         super.onStart();
         if (getDialog() != null && getDialog().getWindow() != null) {
+            // Получаем размер экрана
+            WindowManager windowManager = (WindowManager) requireContext().getSystemService(requireContext().WINDOW_SERVICE);
+            Display display = windowManager.getDefaultDisplay();
+            android.graphics.Point size = new android.graphics.Point();
+            display.getSize(size);
+
+            int screenHeight = size.y;
+
+            // Устанавливаем ширину на всю доступную ширину, высоту ограничиваем
             getDialog().getWindow().setLayout(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
+                    ViewGroup.LayoutParams.MATCH_PARENT,  // Ширина на весь экран
+                    ViewGroup.LayoutParams.WRAP_CONTENT   // Высота по содержимому
             );
+
+            // Ограничиваем только максимальную высоту (80% от экрана)
+            getDialog().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         }
-    }
-
-    private final ActivityResultLauncher<Intent> pickImage = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                    selectedUri = result.getData().getData();
-                    if (selectedUri != null) {
-                        try {
-                            tempImageBase64 = convertUriToBase64(selectedUri);
-                            // Настраиваем ImageView под размер
-                            Bitmap bitmap = base64ToBitmap(tempImageBase64);
-                            setupImageViewForBitmap(bitmap);
-                            ivPreview.setImageBitmap(bitmap);
-                            ivPreview.setVisibility(View.VISIBLE);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }
-    );
-
-    // Добавьте этот метод в ImgFragment
-    private void setupImageViewForBitmap(Bitmap bitmap) {
-        if (bitmap == null) return;
-
-        int imageWidth = bitmap.getWidth();
-        int imageHeight = bitmap.getHeight();
-        int screenWidth = getResources().getDisplayMetrics().widthPixels;
-        int dialogPadding = 40;
-        int maxWidth = screenWidth - dialogPadding;
-        int scaledHeight = (int) ((float) imageHeight * maxWidth / imageWidth);
-
-        ViewGroup.LayoutParams params = ivPreview.getLayoutParams();
-        params.width = maxWidth;
-        params.height = scaledHeight;
-        ivPreview.setLayoutParams(params);
-        ivPreview.setScaleType(ImageView.ScaleType.FIT_XY);
-        ivPreview.setAdjustViewBounds(true);
-    }
-
-    private Bitmap base64ToBitmap(String base64String) {
-        byte[] decodedString = Base64.decode(base64String, Base64.DEFAULT);
-        return BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
     }
 
     @Override
@@ -105,43 +72,120 @@ public class ImgFragment extends DialogFragment {
         super.onViewCreated(view, savedInstanceState);
 
         ivPreview = view.findViewById(R.id.ivPreview);
-        Button btnPick = view.findViewById(R.id.btnPickImage);
+        Button btnPickImage = view.findViewById(R.id.btnPickImage);
+        Button btnRotate = view.findViewById(R.id.btnRotate);
         Button btnAdd = view.findViewById(R.id.btnAdd);
         Button btnCancel = view.findViewById(R.id.btnCancel);
 
-        btnPick.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_PICK);
-            intent.setType("image/*");
-            pickImage.launch(intent);
+        btnPickImage.setOnClickListener(v -> openGallery());
+
+        btnRotate.setOnClickListener(v -> {
+            if (currentBitmap != null) {
+                rotateBitmap(90);
+                Toast.makeText(getContext(), "Поворот на +90°", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(getContext(), "Сначала выберите изображение", Toast.LENGTH_SHORT).show();
+            }
         });
 
         btnAdd.setOnClickListener(v -> {
-            if (tempImageBase64 != null && !tempImageBase64.isEmpty() && listener != null) {
-                listener.onImageAdded(tempImageBase64);
+            if (currentBitmap != null) {
+                String imageBase64 = bitmapToBase64(currentBitmap);
+                if (listener != null) {
+                    listener.onImageAdded(imageBase64);
+                }
                 dismiss();
-            } else if (selectedUri == null) {
+            } else {
                 Toast.makeText(getContext(), "Выберите изображение", Toast.LENGTH_SHORT).show();
             }
         });
 
         btnCancel.setOnClickListener(v -> dismiss());
+
+        // Ограничиваем только высоту ImageView, ширину не трогаем
+        ivPreview.setMaxHeight(getMaxImageHeight());
     }
 
-    private String convertUriToBase64(Uri uri) throws IOException {
-        ContentResolver contentResolver = requireContext().getContentResolver();
-        InputStream inputStream = contentResolver.openInputStream(uri);
+    private int getMaxImageHeight() {
+        android.graphics.Point size = new android.graphics.Point();
+        requireActivity().getWindowManager().getDefaultDisplay().getSize(size);
+        return (int) (size.y * 0.5); // Максимум 50% от высоты экрана
+    }
 
-        if (inputStream == null) {
-            throw new IOException("Unable to open input stream for URI: " + uri);
+    private void openGallery() {
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setType("image/*");
+        startActivityForResult(intent, PICK_IMAGE_REQUEST);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == PICK_IMAGE_REQUEST && resultCode == Activity.RESULT_OK && data != null) {
+            Uri selectedUri = data.getData();
+            if (selectedUri != null) {
+                try {
+                    currentBitmap = MediaStore.Images.Media.getBitmap(requireContext().getContentResolver(), selectedUri);
+                    currentRotation = 0f;
+
+                    // Масштабируем битмап только по высоте, если нужно
+                    currentBitmap = scaleBitmapIfNeeded(currentBitmap);
+
+                    ivPreview.setImageBitmap(currentBitmap);
+                    ivPreview.setVisibility(View.VISIBLE);
+                    Toast.makeText(getContext(), "Изображение загружено", Toast.LENGTH_SHORT).show();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Toast.makeText(getContext(), "Ошибка загрузки изображения", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    }
+
+    private Bitmap scaleBitmapIfNeeded(Bitmap bitmap) {
+        int maxHeight = getMaxImageHeight();
+
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+
+        if (height <= maxHeight) {
+            return bitmap;
         }
 
-        Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-        inputStream.close();
+        // Масштабируем только по высоте, ширина будет пропорциональной
+        float ratio = (float) maxHeight / height;
+        int newWidth = Math.round(width * ratio);
+        int newHeight = maxHeight;
 
+        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true);
+    }
+
+    private void rotateBitmap(float degrees) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(degrees);
+
+        currentBitmap = Bitmap.createBitmap(currentBitmap, 0, 0,
+                currentBitmap.getWidth(), currentBitmap.getHeight(),
+                matrix, true);
+
+        currentRotation += degrees;
+
+        // После поворота снова проверяем высоту
+        currentBitmap = scaleBitmapIfNeeded(currentBitmap);
+        ivPreview.setImageBitmap(currentBitmap);
+    }
+
+    private String bitmapToBase64(Bitmap bitmap) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 70, byteArrayOutputStream);
-        byte[] byteArray = byteArrayOutputStream.toByteArray();
 
+        int quality = 70;
+        if (bitmap.getWidth() > 2000 || bitmap.getHeight() > 2000) {
+            quality = 50;
+        }
+
+        bitmap.compress(Bitmap.CompressFormat.JPEG, quality, byteArrayOutputStream);
+        byte[] byteArray = byteArrayOutputStream.toByteArray();
         return Base64.encodeToString(byteArray, Base64.DEFAULT);
     }
 }

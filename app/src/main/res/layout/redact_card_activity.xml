@@ -19,7 +19,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-         />
+        />
 
     <ScrollView
         android:id="@+id/scrollView"
@@ -35,7 +35,17 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp"/>
+            app:layout_constraintBottom_toTopOf="@+id/buttonPanel"
+            android:padding="16dp">
+
+            <!-- Невидимый LinearLayout высотой 40dp -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:visibility="invisible" />
+
+        </LinearLayout>
+
     </ScrollView>
 
 
@@ -90,7 +100,6 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
-
 
     </LinearLayout>
 

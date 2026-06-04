@@ -1,26 +1,26 @@
 package com.example.myproject;
 
 import android.app.Activity;
-import android.content.ContentResolver;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Base64;
+import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
+import android.widget.Toast;
 import androidx.fragment.app.DialogFragment;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 
 public class ImgRedactFragment extends DialogFragment {
 
@@ -30,10 +30,12 @@ public class ImgRedactFragment extends DialogFragment {
     }
 
     private OnImageChangedListener listener;
-    private String currentImageBase64 = "";
+    private String currentImageBase64 = null;
     private ImageView ivPreview;
     private String tempImageBase64 = null;
     private Bitmap currentBitmap = null;
+    private float currentRotation = 0f;
+    private static final int PICK_IMAGE_REQUEST = 1;
 
     public void setOnImageChangedListener(OnImageChangedListener l) {
         this.listener = l;
@@ -47,31 +49,15 @@ public class ImgRedactFragment extends DialogFragment {
     public void onStart() {
         super.onStart();
         if (getDialog() != null && getDialog().getWindow() != null) {
+            // Устанавливаем ширину на всю доступную ширину
             getDialog().getWindow().setLayout(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
+                    ViewGroup.LayoutParams.MATCH_PARENT,  // Ширина на весь экран
+                    ViewGroup.LayoutParams.WRAP_CONTENT   // Высота по содержимому
             );
+
+            getDialog().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         }
     }
-
-    private final ActivityResultLauncher<Intent> pickImage = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                    Uri selectedUri = result.getData().getData();
-                    if (selectedUri != null) {
-                        try {
-                            currentBitmap = uriToBitmap(selectedUri);
-                            tempImageBase64 = bitmapToBase64(currentBitmap);
-                            ivPreview.setImageBitmap(currentBitmap);
-                            ivPreview.setVisibility(View.VISIBLE);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }
-    );
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -90,10 +76,15 @@ public class ImgRedactFragment extends DialogFragment {
         Button btnUpdate = view.findViewById(R.id.btnUpdate);
         Button btnCancel = view.findViewById(R.id.btnCancel);
 
-        // Загружаем текущее изображение с фиксированными размерами
+        // Загружаем текущее изображение
         if (currentImageBase64 != null && !currentImageBase64.isEmpty()) {
             try {
                 currentBitmap = base64ToBitmap(currentImageBase64);
+                currentRotation = 0f;
+
+                // Масштабируем битмап только по высоте, если нужно
+                currentBitmap = scaleBitmapIfNeeded(currentBitmap);
+
                 ivPreview.setImageBitmap(currentBitmap);
                 ivPreview.setVisibility(View.VISIBLE);
             } catch (Exception e) {
@@ -101,15 +92,14 @@ public class ImgRedactFragment extends DialogFragment {
             }
         }
 
-        btnPickImage.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_PICK);
-            intent.setType("image/*");
-            pickImage.launch(intent);
-        });
+        btnPickImage.setOnClickListener(v -> openGallery());
 
         btnRotate.setOnClickListener(v -> {
             if (currentBitmap != null) {
                 rotateBitmap();
+                Toast.makeText(getContext(), "Поворот на +90°", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(getContext(), "Нет изображения", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -128,10 +118,71 @@ public class ImgRedactFragment extends DialogFragment {
                 dismiss();
             } else if (currentImageBase64 != null && !currentImageBase64.isEmpty()) {
                 dismiss();
+            } else {
+                Toast.makeText(getContext(), "Нет изображения для сохранения", Toast.LENGTH_SHORT).show();
             }
         });
 
         btnCancel.setOnClickListener(v -> dismiss());
+
+        // Ограничиваем только высоту ImageView
+        ivPreview.setMaxHeight(getMaxImageHeight());
+    }
+
+    private int getMaxImageHeight() {
+        android.graphics.Point size = new android.graphics.Point();
+        requireActivity().getWindowManager().getDefaultDisplay().getSize(size);
+        return (int) (size.y * 0.5); // Максимум 50% от высоты экрана
+    }
+
+    private void openGallery() {
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setType("image/*");
+        startActivityForResult(intent, PICK_IMAGE_REQUEST);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == PICK_IMAGE_REQUEST && resultCode == Activity.RESULT_OK && data != null) {
+            Uri selectedUri = data.getData();
+            if (selectedUri != null) {
+                try {
+                    currentBitmap = MediaStore.Images.Media.getBitmap(requireContext().getContentResolver(), selectedUri);
+                    currentRotation = 0f;
+
+                    // Масштабируем битмап только по высоте, если нужно
+                    currentBitmap = scaleBitmapIfNeeded(currentBitmap);
+
+                    tempImageBase64 = bitmapToBase64(currentBitmap);
+                    ivPreview.setImageBitmap(currentBitmap);
+                    ivPreview.setVisibility(View.VISIBLE);
+                    Toast.makeText(getContext(), "Изображение загружено", Toast.LENGTH_SHORT).show();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Toast.makeText(getContext(), "Ошибка загрузки изображения", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    }
+
+    private Bitmap scaleBitmapIfNeeded(Bitmap bitmap) {
+        int maxHeight = getMaxImageHeight();
+
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+
+        if (height <= maxHeight) {
+            return bitmap;
+        }
+
+        // Масштабируем только по высоте, ширина будет пропорциональной
+        float ratio = (float) maxHeight / height;
+        int newWidth = Math.round(width * ratio);
+        int newHeight = maxHeight;
+
+        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true);
     }
 
     private void rotateBitmap() {
@@ -142,47 +193,23 @@ public class ImgRedactFragment extends DialogFragment {
                 currentBitmap.getWidth(), currentBitmap.getHeight(),
                 matrix, true);
 
+        currentRotation += 90f;
+
+        // После поворота снова проверяем высоту
+        currentBitmap = scaleBitmapIfNeeded(currentBitmap);
         ivPreview.setImageBitmap(currentBitmap);
         tempImageBase64 = bitmapToBase64(currentBitmap);
     }
 
-    private Bitmap uriToBitmap(Uri uri) throws IOException {
-        ContentResolver contentResolver = requireContext().getContentResolver();
-        InputStream inputStream = contentResolver.openInputStream(uri);
-
-        if (inputStream == null) {
-            throw new IOException("Unable to open input stream for URI: " + uri);
-        }
-
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inJustDecodeBounds = true;
-        BitmapFactory.decodeStream(inputStream, null, options);
-        inputStream.close();
-
-        inputStream = contentResolver.openInputStream(uri);
-        int screenWidth = getResources().getDisplayMetrics().widthPixels;
-        int sampleSize = calculateSampleSize(options.outWidth, options.outHeight, screenWidth);
-
-        options = new BitmapFactory.Options();
-        options.inSampleSize = sampleSize;
-
-        Bitmap bitmap = BitmapFactory.decodeStream(inputStream, null, options);
-        inputStream.close();
-
-        return bitmap;
-    }
-
-    private int calculateSampleSize(int width, int height, int targetWidth) {
-        int sampleSize = 1;
-        while (width / sampleSize > targetWidth) {
-            sampleSize *= 2;
-        }
-        return sampleSize;
-    }
-
     private String bitmapToBase64(Bitmap bitmap) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream);
+
+        int quality = 70;
+        if (bitmap.getWidth() > 2000 || bitmap.getHeight() > 2000) {
+            quality = 50;
+        }
+
+        bitmap.compress(Bitmap.CompressFormat.JPEG, quality, byteArrayOutputStream);
         byte[] byteArray = byteArrayOutputStream.toByteArray();
         return Base64.encodeToString(byteArray, Base64.DEFAULT);
     }

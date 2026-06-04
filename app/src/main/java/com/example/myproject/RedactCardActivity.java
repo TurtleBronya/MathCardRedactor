@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.util.Base64;
 import android.view.MotionEvent;
 import android.view.View;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -86,6 +87,7 @@ public class RedactCardActivity extends AppCompatActivity {
         }
     }
 
+    // Обновите метод addItemToContainer (если нужно добавить отступы)
     private void addItemToContainer(CardItem item) {
         if (item.type.equals("text")) {
             TextView tv = createTextView(item.content);
@@ -160,7 +162,7 @@ public class RedactCardActivity extends AppCompatActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.setMargins(16, 0, 16, 8);  // Уменьшил нижний отступ с 16 до 8dp
         tv.setLayoutParams(lp);
-        tv.setBackgroundResource(R.drawable.edit_bg);  // Добавляем фон для красоты
+
         tv.setOnClickListener(v -> openTextRedactDialog(tv));
         return tv;
     }
@@ -200,12 +202,27 @@ public class RedactCardActivity extends AppCompatActivity {
         WebView wv = KaTeXWebView.create(this);
         KaTeXWebView.render(wv, latex);
         wv.setTag(latex);
+
+        // Вычисляем масштаб в зависимости от длины формулы
+        int scale = calculateScaleForLatex(latex);
+
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                150);  // Уменьшил высоту с 200 до 150dp
-        lp.setMargins(16, 0, 16, 8);  // Уменьшил нижний отступ с 16 до 8dp
+                300);
+        lp.setMargins(16, 0, 16, 8);
         wv.setLayoutParams(lp);
         wv.setBackgroundResource(R.drawable.edit_bg);
+
+        // Устанавливаем фон для WebView
+        wv.setBackgroundColor(getColor(R.color.grey_white));// #F9F9F9 в ARGB формате
+
+        WebSettings webSettings = wv.getSettings();
+        webSettings.setSupportZoom(true);
+        webSettings.setBuiltInZoomControls(true);
+        webSettings.setDisplayZoomControls(false);
+
+        wv.setInitialScale(scale);
+
         wv.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_UP) {
                 openFormulaRedactDialog(wv);
@@ -213,6 +230,84 @@ public class RedactCardActivity extends AppCompatActivity {
             return true;
         });
         return wv;
+    }
+
+
+    private int calculateScaleForLatex(String latex) {
+        if (latex == null || latex.isEmpty()) {
+            return 250;
+        }
+
+
+        int significantChars = countSignificantLatexChars(latex);
+
+
+        if (significantChars <= 20) {
+            return 250; // 100%
+        } else if (significantChars <= 40) {
+            return 225; // 90%
+        } else if (significantChars <= 60) {
+            return 200; // 80%
+        } else if (significantChars <= 80) {
+            return 175; // 70%
+        } else if (significantChars <= 100) {
+            return 150; // 60%
+        } else {
+            return 125; // 50%
+        }
+    }
+
+
+    private int countSignificantLatexChars(String latex) {
+        int count = 0;
+        int i = 0;
+        int length = latex.length();
+
+        while (i < length) {
+            char c = latex.charAt(i);
+
+
+            if (c == '\\') {
+
+                i++;
+                while (i < length && Character.isLetter(latex.charAt(i))) {
+                    i++;
+                }
+
+                if (i < length && latex.charAt(i) == ' ') {
+                    i++;
+                }
+                continue;
+            }
+
+
+            if (Character.isWhitespace(c)) {
+                i++;
+                continue;
+            }
+
+
+            if (c == '{' || c == '}') {
+                i++;
+                continue;
+            }
+
+
+            if (Character.isLetterOrDigit(c) ||
+                    c == '+' || c == '-' || c == '*' || c == '/' ||
+                    c == '=' || c == '<' || c == '>' || c == '^' ||
+                    c == '_' || c == '[' || c == ']' || c == '(' ||
+                    c == ')' || c == '|' || c == '&' || c == '!' ||
+                    c == '?' || c == '~' || c == ',' || c == '.' ||
+                    c == ';' || c == ':' || c == '@' || c == '#' ||
+                    c == '$' || c == '%') {
+                count++;
+            }
+
+            i++;
+        }
+
+        return count;
     }
 
     private void openFormulaDialog() {
@@ -304,46 +399,52 @@ public class RedactCardActivity extends AppCompatActivity {
                 Bitmap decodedBitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
                 iv.setImageBitmap(decodedBitmap);
 
-                // Подстраиваем размер под изображение
+                // ТОЛЬКО ЗДЕСЬ подстраиваем размер под изображение
                 int imageWidth = decodedBitmap.getWidth();
                 int imageHeight = decodedBitmap.getHeight();
                 int screenWidth = getResources().getDisplayMetrics().widthPixels;
                 int maxWidth = screenWidth - 64; // отступы 32dp с каждой стороны
 
+                // Вычисляем высоту с сохранением пропорций
                 int scaledHeight = (int) ((float) imageHeight * maxWidth / imageWidth);
 
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         maxWidth,
                         scaledHeight);
-                lp.setMargins(16, 0, 16, 8);  // Уменьшил нижний отступ с 16 до 8dp, убрал верхний
+                lp.setMargins(16, 8, 16, 16); // отступы для красивого отображения
                 iv.setLayoutParams(lp);
                 iv.setScaleType(ImageView.ScaleType.FIT_XY);
                 iv.setAdjustViewBounds(true);
 
             } catch (Exception e) {
                 e.printStackTrace();
+                // Если ошибка, устанавливаем стандартный размер
                 iv.setImageResource(android.R.drawable.ic_menu_gallery);
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
-                        250);  // Уменьшил высоту с 400 до 250dp для ошибок
-                lp.setMargins(16, 0, 16, 8);
+                        400);
+                lp.setMargins(16, 8, 16, 16);
                 iv.setLayoutParams(lp);
                 iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
             }
         } else {
+            // Если нет изображения, устанавливаем заглушку со стандартным размером
             iv.setImageResource(android.R.drawable.ic_menu_gallery);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    250);  // Уменьшил высоту с 400 до 250dp
-            lp.setMargins(16, 0, 16, 8);
+                    400);
+            lp.setMargins(16, 8, 16, 16);
             iv.setLayoutParams(lp);
             iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
         }
 
+        // Добавляем клик для редактирования
         iv.setOnClickListener(v -> openImageRedactDialog(iv, (String) iv.getTag()));
 
         return iv;
     }
+
+
 
 
 
