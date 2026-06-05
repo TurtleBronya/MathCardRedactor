@@ -15,30 +15,64 @@
         android:textStyle="bold"
         android:paddingLeft="16dp"
         android:paddingRight="16dp"
-        android:paddingBottom="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="8dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        />
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/sideTogglePanel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintTop_toBottomOf="@+id/etCardTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <Button
+            android:id="@+id/btnQuestionSide"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Вопрос"
+            android:textSize="16sp"
+            android:backgroundTint="@color/blue"
+            app:cornerRadius="8dp"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btnAnswerSide"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Ответ"
+            android:textSize="16sp"
+            android:backgroundTint="@color/gray"
+            app:cornerRadius="8dp"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
 
     <ScrollView
-        android:id="@+id/scrollView"
+        android:id="@+id/questionScrollView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@+id/etCardTitle"
+        android:visibility="visible"
+        app:layout_constraintTop_toBottomOf="@+id/sideTogglePanel"
         app:layout_constraintBottom_toTopOf="@+id/buttonPanel"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
-            android:id="@+id/editorContainer"
+            android:id="@+id/questionContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            app:layout_constraintBottom_toTopOf="@+id/buttonPanel"
             android:padding="16dp">
 
-            <!-- Невидимый LinearLayout высотой 40dp -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
@@ -48,13 +82,38 @@
 
     </ScrollView>
 
+    <ScrollView
+        android:id="@+id/answerScrollView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@+id/sideTogglePanel"
+        app:layout_constraintBottom_toTopOf="@+id/buttonPanel"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:id="@+id/answerContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:visibility="invisible" />
+
+        </LinearLayout>
+
+    </ScrollView>
 
     <LinearLayout
         android:id="@+id/buttonPanel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintBottom_toTopOf="@+id/savePanel"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
@@ -66,7 +125,7 @@
             android:text="Текст"
             app:cornerRadius="0dp"
             android:onClick="onClick"
-            app:backgroundTint="@color/blue"/>
+            android:backgroundTint="@color/blue"/>
 
         <Button
             android:id="@+id/btnform"
@@ -76,7 +135,7 @@
             android:text="Формула"
             app:cornerRadius="0dp"
             android:onClick="onClick"
-            app:backgroundTint="@color/blue"/>
+            android:backgroundTint="@color/blue"/>
 
         <Button
             android:id="@+id/btnimg"
@@ -88,19 +147,7 @@
             android:singleLine="true"
             android:paddingLeft="0dp"
             android:onClick="onClick"
-            app:backgroundTint="@color/blue"/>
-    </LinearLayout>
-
-
-    <LinearLayout
-        android:id="@+id/savePanel"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
-
+            android:backgroundTint="@color/blue"/>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

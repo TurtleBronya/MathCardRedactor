@@ -13,19 +13,30 @@ import java.util.List;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "cards.db";
-    private static final int DATABASE_VERSION = 3;
+    private static final int DATABASE_VERSION = 6;
 
-    public static final String TABLE_CARDS   = "cards";
-    public static final String COLUMN_ID         = "_id";
-    public static final String COLUMN_TITLE      = "title";
-    public static final String COLUMN_CREATED_AT = "created_at";
-    public static final String COLUMN_UPDATED_AT = "updated_at";
+    // Таблица колод
+    public static final String TABLE_DECKS = "decks";
+    public static final String COLUMN_DECK_ID = "_id";
+    public static final String COLUMN_DECK_TITLE = "title";
+    public static final String COLUMN_DECK_CREATED_AT = "created_at";
+    public static final String COLUMN_DECK_UPDATED_AT = "updated_at";
 
-    public static final String TABLE_ITEMS    = "items";
-    public static final String COLUMN_CARD_ID = "card_id";
-    public static final String COLUMN_TYPE    = "type";
-    public static final String COLUMN_CONTENT = "content";
-    public static final String COLUMN_ORDER   = "order_index";
+    // Таблица карточек (общая)
+    public static final String TABLE_CARDS = "cards";
+    public static final String COLUMN_CARD_ID = "_id";
+    public static final String COLUMN_CARD_TITLE = "title";
+    public static final String COLUMN_CARD_QUESTION = "question";
+    public static final String COLUMN_CARD_ANSWER = "answer";
+    public static final String COLUMN_CARD_CREATED_AT = "created_at";
+    public static final String COLUMN_CARD_UPDATED_AT = "updated_at";
+
+    // Таблица связей карточек с колодами (многие ко многим)
+    public static final String TABLE_DECK_CARDS = "deck_cards";
+    public static final String COLUMN_DECK_CARDS_ID = "_id";
+    public static final String COLUMN_DECK_REF_ID = "deck_id";
+    public static final String COLUMN_CARD_REF_ID = "card_id";
+    public static final String COLUMN_ADDED_AT = "added_at";
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -33,90 +44,122 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        Log.d("DatabaseHelper", "Creating new database");
-        createTables(db);
-    }
+        Log.d("DatabaseHelper", "Creating new database with shared cards");
 
-    private void createTables(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE " + TABLE_DECKS + " (" +
+                COLUMN_DECK_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COLUMN_DECK_TITLE + " TEXT NOT NULL, " +
+                COLUMN_DECK_CREATED_AT + " INTEGER DEFAULT (strftime('%s', 'now')), " +
+                COLUMN_DECK_UPDATED_AT + " INTEGER DEFAULT (strftime('%s', 'now')))");
+
         db.execSQL("CREATE TABLE " + TABLE_CARDS + " (" +
-                COLUMN_ID         + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COLUMN_TITLE      + " TEXT, " +
-                COLUMN_CREATED_AT + " INTEGER DEFAULT (strftime('%s', 'now')), " +
-                COLUMN_UPDATED_AT + " INTEGER DEFAULT (strftime('%s', 'now')))");
+                COLUMN_CARD_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COLUMN_CARD_TITLE + " TEXT, " +
+                COLUMN_CARD_QUESTION + " TEXT, " +
+                COLUMN_CARD_ANSWER + " TEXT, " +
+                COLUMN_CARD_CREATED_AT + " INTEGER DEFAULT (strftime('%s', 'now')), " +
+                COLUMN_CARD_UPDATED_AT + " INTEGER DEFAULT (strftime('%s', 'now')))");
 
-        db.execSQL("CREATE TABLE " + TABLE_ITEMS + " (" +
-                COLUMN_ID      + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COLUMN_CARD_ID + " INTEGER, " +
-                COLUMN_TYPE    + " TEXT, " +
-                COLUMN_CONTENT + " TEXT, " +
-                COLUMN_ORDER   + " INTEGER, " +
-                "FOREIGN KEY(" + COLUMN_CARD_ID + ") REFERENCES " +
-                TABLE_CARDS + "(" + COLUMN_ID + ") ON DELETE CASCADE)");
+        db.execSQL("CREATE TABLE " + TABLE_DECK_CARDS + " (" +
+                COLUMN_DECK_CARDS_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COLUMN_DECK_REF_ID + " INTEGER, " +
+                COLUMN_CARD_REF_ID + " INTEGER, " +
+                COLUMN_ADDED_AT + " INTEGER DEFAULT (strftime('%s', 'now')), " +
+                "FOREIGN KEY(" + COLUMN_DECK_REF_ID + ") REFERENCES " + TABLE_DECKS + "(" + COLUMN_DECK_ID + ") ON DELETE CASCADE, " +
+                "FOREIGN KEY(" + COLUMN_CARD_REF_ID + ") REFERENCES " + TABLE_CARDS + "(" + COLUMN_CARD_ID + ") ON DELETE CASCADE, " +
+                "UNIQUE(" + COLUMN_DECK_REF_ID + ", " + COLUMN_CARD_REF_ID + "))");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Log.d("DatabaseHelper", "Upgrading database from version " + oldVersion + " to " + newVersion);
-        if (oldVersion < 2) {
-            try {
-                db.execSQL("ALTER TABLE " + TABLE_CARDS + " ADD COLUMN " + COLUMN_UPDATED_AT + " INTEGER DEFAULT 0");
-                db.execSQL("UPDATE " + TABLE_CARDS + " SET " + COLUMN_UPDATED_AT + " = " + COLUMN_CREATED_AT);
-            } catch (Exception e) {
-                Log.e("DatabaseHelper", "Error adding updated_at column", e);
-            }
+
+        if (oldVersion < 6) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_CARDS + " (" +
+                    COLUMN_CARD_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    COLUMN_CARD_TITLE + " TEXT, " +
+                    COLUMN_CARD_QUESTION + " TEXT, " +
+                    COLUMN_CARD_ANSWER + " TEXT, " +
+                    COLUMN_CARD_CREATED_AT + " INTEGER DEFAULT (strftime('%s', 'now')), " +
+                    COLUMN_CARD_UPDATED_AT + " INTEGER DEFAULT (strftime('%s', 'now')))");
+
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_DECK_CARDS + " (" +
+                    COLUMN_DECK_CARDS_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    COLUMN_DECK_REF_ID + " INTEGER, " +
+                    COLUMN_CARD_REF_ID + " INTEGER, " +
+                    COLUMN_ADDED_AT + " INTEGER DEFAULT (strftime('%s', 'now')), " +
+                    "FOREIGN KEY(" + COLUMN_DECK_REF_ID + ") REFERENCES " + TABLE_DECKS + "(" + COLUMN_DECK_ID + ") ON DELETE CASCADE, " +
+                    "FOREIGN KEY(" + COLUMN_CARD_REF_ID + ") REFERENCES " + TABLE_CARDS + "(" + COLUMN_CARD_ID + ") ON DELETE CASCADE, " +
+                    "UNIQUE(" + COLUMN_DECK_REF_ID + ", " + COLUMN_CARD_REF_ID + "))");
         }
     }
 
+    // ==================== МЕТОДЫ ДЛЯ КОЛОД ====================
 
-
-    public List<Card> searchCards(String query) {
-        List<Card> cards = new ArrayList<>();
-
-
-        if (query == null || query.trim().isEmpty()) {
-            return getAllCards();
-        }
-
+    public List<Deck> getAllDecks() {
+        List<Deck> decks = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = null;
 
         try {
-
-            String searchPattern = "%" + query.trim() + "%";
-
-            String sql = "SELECT * FROM " + TABLE_CARDS +
-                    " WHERE " + COLUMN_TITLE + " LIKE ?" +
-                    " ORDER BY " + COLUMN_UPDATED_AT + " DESC";
-
-            cursor = db.rawQuery(sql, new String[]{searchPattern});
-
+            cursor = db.rawQuery("SELECT * FROM " + TABLE_DECKS + " ORDER BY " + COLUMN_DECK_UPDATED_AT + " DESC", null);
             while (cursor.moveToNext()) {
-                Card card = new Card();
-                card.id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_ID));
-                card.title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE));
-                card.createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_CREATED_AT));
-
-                try {
-                    int updatedIndex = cursor.getColumnIndex(COLUMN_UPDATED_AT);
-                    card.updatedAt = (updatedIndex != -1) ?
-                            cursor.getLong(updatedIndex) : card.createdAt;
-                } catch (Exception e) {
-                    card.updatedAt = card.createdAt;
-                }
-
-                card.items = getCardItems(db, card.id);
-                cards.add(card);
+                Deck deck = new Deck();
+                deck.id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_DECK_ID));
+                deck.title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DECK_TITLE));
+                deck.createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_DECK_CREATED_AT));
+                deck.updatedAt = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_DECK_UPDATED_AT));
+                decks.add(deck);
             }
-        } catch (Exception e) {
-            Log.e("DatabaseHelper", "Error searching cards", e);
         } finally {
             if (cursor != null) cursor.close();
         }
-
-        return cards;
+        return decks;
     }
 
+    public List<Deck> searchDecks(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return getAllDecks();
+        }
 
+        List<Deck> decks = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = null;
+
+        try {
+            String searchPattern = "%" + query.trim() + "%";
+            String sql = "SELECT * FROM " + TABLE_DECKS +
+                    " WHERE " + COLUMN_DECK_TITLE + " LIKE ?" +
+                    " ORDER BY " + COLUMN_DECK_UPDATED_AT + " DESC";
+            cursor = db.rawQuery(sql, new String[]{searchPattern});
+            while (cursor.moveToNext()) {
+                Deck deck = new Deck();
+                deck.id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_DECK_ID));
+                deck.title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DECK_TITLE));
+                deck.createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_DECK_CREATED_AT));
+                deck.updatedAt = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_DECK_UPDATED_AT));
+                decks.add(deck);
+            }
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        return decks;
+    }
+
+    public long saveDeck(String title) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put(COLUMN_DECK_TITLE, title);
+        cv.put(COLUMN_DECK_UPDATED_AT, System.currentTimeMillis() / 1000);
+        return db.insert(TABLE_DECKS, null, cv);
+    }
+
+    public void deleteDeck(long deckId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.delete(TABLE_DECKS, COLUMN_DECK_ID + " = ?", new String[]{String.valueOf(deckId)});
+    }
+
+    // ==================== МЕТОДЫ ДЛЯ КАРТОЧЕК ====================
 
     public List<Card> getAllCards() {
         List<Card> cards = new ArrayList<>();
@@ -124,25 +167,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         Cursor cursor = null;
 
         try {
-            cursor = db.rawQuery(
-                    "SELECT * FROM " + TABLE_CARDS + " ORDER BY " + COLUMN_UPDATED_AT + " DESC",
-                    null);
-
+            cursor = db.rawQuery("SELECT * FROM " + TABLE_CARDS + " ORDER BY " + COLUMN_CARD_UPDATED_AT + " DESC", null);
             while (cursor.moveToNext()) {
                 Card card = new Card();
-                card.id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_ID));
-                card.title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE));
-                card.createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_CREATED_AT));
-
-                try {
-                    int updatedIndex = cursor.getColumnIndex(COLUMN_UPDATED_AT);
-                    card.updatedAt = (updatedIndex != -1) ?
-                            cursor.getLong(updatedIndex) : card.createdAt;
-                } catch (Exception e) {
-                    card.updatedAt = card.createdAt;
-                }
-
-                card.items = getCardItems(db, card.id);
+                card.id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_CARD_ID));
+                card.title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CARD_TITLE));
+                card.question = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CARD_QUESTION));
+                card.answer = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CARD_ANSWER));
+                card.createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_CARD_CREATED_AT));
+                card.updatedAt = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_CARD_UPDATED_AT));
                 cards.add(card);
             }
         } finally {
@@ -151,99 +184,132 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return cards;
     }
 
-
-    public List<CardItem> getCardItems(long cardId) {
+    public List<Card> getAvailableCardsForDeck(long deckId, String query) {
+        List<Card> cards = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
-        return getCardItems(db, cardId);
-    }
-
-    private List<CardItem> getCardItems(SQLiteDatabase db, long cardId) {
-        List<CardItem> items = new ArrayList<>();
         Cursor cursor = null;
 
         try {
-            cursor = db.rawQuery(
-                    "SELECT * FROM " + TABLE_ITEMS +
-                            " WHERE " + COLUMN_CARD_ID + " = ?" +
-                            " ORDER BY " + COLUMN_ORDER,
-                    new String[]{String.valueOf(cardId)});
+            String searchCondition = "";
+            String[] args;
+
+            if (query != null && !query.trim().isEmpty()) {
+                searchCondition = " AND c." + COLUMN_CARD_TITLE + " LIKE ?";
+                args = new String[]{String.valueOf(deckId), "%" + query.trim() + "%"};
+            } else {
+                args = new String[]{String.valueOf(deckId)};
+            }
+
+            String sql = "SELECT c.* FROM " + TABLE_CARDS + " c" +
+                    " WHERE c." + COLUMN_CARD_ID + " NOT IN (" +
+                    " SELECT " + COLUMN_CARD_REF_ID + " FROM " + TABLE_DECK_CARDS +
+                    " WHERE " + COLUMN_DECK_REF_ID + " = ?)" +
+                    searchCondition +
+                    " ORDER BY c." + COLUMN_CARD_UPDATED_AT + " DESC";
+
+            cursor = db.rawQuery(sql, args);
 
             while (cursor.moveToNext()) {
-                CardItem item = new CardItem();
-                item.type = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TYPE));
-                item.content = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CONTENT));
-                items.add(item);
+                Card card = new Card();
+                card.id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_CARD_ID));
+                card.title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CARD_TITLE));
+                card.question = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CARD_QUESTION));
+                card.answer = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CARD_ANSWER));
+                card.createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_CARD_CREATED_AT));
+                card.updatedAt = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_CARD_UPDATED_AT));
+                cards.add(card);
             }
         } finally {
             if (cursor != null) cursor.close();
         }
-        return items;
+        return cards;
     }
 
+    public List<Card> getCardsByDeckId(long deckId) {
+        List<Card> cards = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = null;
 
-
-    public long saveCard(String title, List<CardItem> items) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        db.beginTransaction();
         try {
-            ContentValues cv = new ContentValues();
-            cv.put(COLUMN_TITLE, title);
-            long currentTime = System.currentTimeMillis() / 1000;
-            cv.put(COLUMN_UPDATED_AT, currentTime);
-            long cardId = db.insert(TABLE_CARDS, null, cv);
+            String sql = "SELECT c.* FROM " + TABLE_CARDS + " c" +
+                    " INNER JOIN " + TABLE_DECK_CARDS + " dc ON c." + COLUMN_CARD_ID + " = dc." + COLUMN_CARD_REF_ID +
+                    " WHERE dc." + COLUMN_DECK_REF_ID + " = ?" +
+                    " ORDER BY dc." + COLUMN_ADDED_AT + " DESC";
 
-            insertItems(db, cardId, items);
-            db.setTransactionSuccessful();
-            return cardId;
+            cursor = db.rawQuery(sql, new String[]{String.valueOf(deckId)});
+
+            while (cursor.moveToNext()) {
+                Card card = new Card();
+                card.id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_CARD_ID));
+                card.title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CARD_TITLE));
+                card.question = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CARD_QUESTION));
+                card.answer = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CARD_ANSWER));
+                card.createdAt = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_CARD_CREATED_AT));
+                card.updatedAt = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_CARD_UPDATED_AT));
+                cards.add(card);
+            }
         } finally {
-            db.endTransaction();
+            if (cursor != null) cursor.close();
         }
+        return cards;
     }
 
-
-
-    public void updateCard(long cardId, String title, List<CardItem> items) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        db.beginTransaction();
-        try {
-            ContentValues cv = new ContentValues();
-            cv.put(COLUMN_TITLE, title);
-            cv.put(COLUMN_UPDATED_AT, System.currentTimeMillis() / 1000);
-            db.update(TABLE_CARDS, cv, COLUMN_ID + " = ?",
-                    new String[]{String.valueOf(cardId)});
-
-            db.delete(TABLE_ITEMS, COLUMN_CARD_ID + " = ?",
-                    new String[]{String.valueOf(cardId)});
-
-            insertItems(db, cardId, items);
-            db.setTransactionSuccessful();
-        } finally {
-            db.endTransaction();
-        }
-    }
-
-
-
-    public void deleteCard(long cardId) {
+    public boolean addCardToDeck(long deckId, long cardId) {
         SQLiteDatabase db = this.getWritableDatabase();
         try {
-            db.delete(TABLE_CARDS, COLUMN_ID + " = ?", new String[]{String.valueOf(cardId)});
-        } finally {
-            db.close();
+            ContentValues cv = new ContentValues();
+            cv.put(COLUMN_DECK_REF_ID, deckId);
+            cv.put(COLUMN_CARD_REF_ID, cardId);
+            cv.put(COLUMN_ADDED_AT, System.currentTimeMillis() / 1000);
+            long result = db.insertOrThrow(TABLE_DECK_CARDS, null, cv);
+            return result != -1;
+        } catch (Exception e) {
+            Log.e("DatabaseHelper", "Card already in deck or error: " + e.getMessage());
+            return false;
         }
     }
 
+    public boolean removeCardFromDeck(long deckId, long cardId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        int deleted = db.delete(TABLE_DECK_CARDS,
+                COLUMN_DECK_REF_ID + " = ? AND " + COLUMN_CARD_REF_ID + " = ?",
+                new String[]{String.valueOf(deckId), String.valueOf(cardId)});
+        return deleted > 0;
+    }
 
+    public long saveCard(String title, String question, String answer) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put(COLUMN_CARD_TITLE, title);
+        cv.put(COLUMN_CARD_QUESTION, question != null ? question : "");
+        cv.put(COLUMN_CARD_ANSWER, answer != null ? answer : "");
+        cv.put(COLUMN_CARD_UPDATED_AT, System.currentTimeMillis() / 1000);
+        return db.insert(TABLE_CARDS, null, cv);
+    }
 
-    private void insertItems(SQLiteDatabase db, long cardId, List<CardItem> items) {
-        for (int i = 0; i < items.size(); i++) {
-            CardItem item = items.get(i);
-            ContentValues cv = new ContentValues();
-            cv.put(COLUMN_CARD_ID, cardId);
-            cv.put(COLUMN_TYPE, item.type);
-            cv.put(COLUMN_CONTENT, item.content);
-            cv.put(COLUMN_ORDER, i);
-            db.insert(TABLE_ITEMS, null, cv);
-        }
+    public void updateCard(long cardId, String title, String question, String answer) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put(COLUMN_CARD_TITLE, title);
+        cv.put(COLUMN_CARD_QUESTION, question != null ? question : "");
+        cv.put(COLUMN_CARD_ANSWER, answer != null ? answer : "");
+        cv.put(COLUMN_CARD_UPDATED_AT, System.currentTimeMillis() / 1000);
+        db.update(TABLE_CARDS, cv, COLUMN_CARD_ID + " = ?", new String[]{String.valueOf(cardId)});
+    }
+
+    public void deleteCardPermanently(long cardId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.delete(TABLE_CARDS, COLUMN_CARD_ID + " = ?", new String[]{String.valueOf(cardId)});
+    }
+
+    public boolean isCardInDeck(long deckId, long cardId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery(
+                "SELECT 1 FROM " + TABLE_DECK_CARDS +
+                        " WHERE " + COLUMN_DECK_REF_ID + " = ? AND " + COLUMN_CARD_REF_ID + " = ?",
+                new String[]{String.valueOf(deckId), String.valueOf(cardId)});
+        boolean exists = cursor.moveToFirst();
+        cursor.close();
+        return exists;
     }
 }
