@@ -43,7 +43,7 @@ public class TextFragment extends DialogFragment {
 
         EditText editText = view.findViewById(R.id.editTextContent);
         Button btnAdd    = view.findViewById(R.id.btnAdd);
-        Button btnCancel = view.findViewById(R.id.btnCancel);
+
 
         btnAdd.setOnClickListener(v -> {
             String text = editText.getText().toString().trim();
@@ -53,6 +53,6 @@ public class TextFragment extends DialogFragment {
             dismiss();
         });
 
-        btnCancel.setOnClickListener(v -> dismiss());
+
     }
 }

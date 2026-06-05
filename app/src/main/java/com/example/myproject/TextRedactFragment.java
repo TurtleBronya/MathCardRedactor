@@ -52,7 +52,7 @@ public class TextRedactFragment extends DialogFragment {
         EditText editText = view.findViewById(R.id.editTextContent);
         Button btnDelete  = view.findViewById(R.id.btnDelete);
         Button btnRedact  = view.findViewById(R.id.btnRedact);
-        Button btnCancel  = view.findViewById(R.id.btnCancel);
+
 
 
         Bundle args = getArguments();
@@ -77,6 +77,6 @@ public class TextRedactFragment extends DialogFragment {
             dismiss();
         });
 
-        btnCancel.setOnClickListener(v -> dismiss());
+
     }
 }

@@ -45,7 +45,7 @@ public class FormFragment extends DialogFragment {
         WebView  wvPreview  = view.findViewById(R.id.wvLatexPreview);
         Button   btnPreview = view.findViewById(R.id.btnPreview);
         Button   btnAdd     = view.findViewById(R.id.btnAdd);
-        Button   btnCancel  = view.findViewById(R.id.btnCancel);
+
 
         KaTeXWebView.configure(wvPreview);
         KaTeXWebView.render(wvPreview, "");
@@ -61,6 +61,6 @@ public class FormFragment extends DialogFragment {
             dismiss();
         });
 
-        btnCancel.setOnClickListener(v -> dismiss());
+
     }
 }

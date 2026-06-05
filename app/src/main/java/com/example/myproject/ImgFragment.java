@@ -75,7 +75,7 @@ public class ImgFragment extends DialogFragment {
         Button btnPickImage = view.findViewById(R.id.btnPickImage);
         Button btnRotate = view.findViewById(R.id.btnRotate);
         Button btnAdd = view.findViewById(R.id.btnAdd);
-        Button btnCancel = view.findViewById(R.id.btnCancel);
+
 
         btnPickImage.setOnClickListener(v -> openGallery());
 
@@ -100,7 +100,7 @@ public class ImgFragment extends DialogFragment {
             }
         });
 
-        btnCancel.setOnClickListener(v -> dismiss());
+
 
         // Ограничиваем только высоту ImageView, ширину не трогаем
         ivPreview.setMaxHeight(getMaxImageHeight());

@@ -74,7 +74,7 @@ public class ImgRedactFragment extends DialogFragment {
         Button btnRotate = view.findViewById(R.id.btnRotate);
         Button btnDelete = view.findViewById(R.id.btnDelete);
         Button btnUpdate = view.findViewById(R.id.btnUpdate);
-        Button btnCancel = view.findViewById(R.id.btnCancel);
+
 
         // Загружаем текущее изображение
         if (currentImageBase64 != null && !currentImageBase64.isEmpty()) {
@@ -123,7 +123,7 @@ public class ImgRedactFragment extends DialogFragment {
             }
         });
 
-        btnCancel.setOnClickListener(v -> dismiss());
+
 
         // Ограничиваем только высоту ImageView
         ivPreview.setMaxHeight(getMaxImageHeight());

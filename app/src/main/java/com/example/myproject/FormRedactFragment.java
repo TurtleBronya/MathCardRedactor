@@ -57,7 +57,7 @@ public class FormRedactFragment extends DialogFragment {
         WebView  wvPreview  = view.findViewById(R.id.wvLatexPreview);
         Button   btnPreview = view.findViewById(R.id.btnPreview);
         Button   btnAdd     = view.findViewById(R.id.btnAdd);
-        Button   btnCancel  = view.findViewById(R.id.btnCancel);
+
         Button btnDelete  = view.findViewById(R.id.btnDelete);
         Button btnRedact  = view.findViewById(R.id.btnRedact);
 

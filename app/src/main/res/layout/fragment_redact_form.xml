@@ -54,9 +54,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Удалить"
-            android:textColor="@color/blue"
             android:layout_marginEnd="8dp"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+            android:backgroundTint="@color/delete_color"/>
 
         <Button
             android:id="@+id/btnRedact"

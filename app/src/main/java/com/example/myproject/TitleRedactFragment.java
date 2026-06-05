@@ -39,7 +39,7 @@ public class TitleRedactFragment extends DialogFragment {
 
         editTextContent = view.findViewById(R.id.editTextContent);
         btnRedact = view.findViewById(R.id.btnRedact);
-        btnCancel = view.findViewById(R.id.btnCancel);
+
 
 
         if (currentTitle != null) {

@@ -48,7 +48,7 @@ public class CardNameFragment extends DialogFragment {
     private void initViews(View view) {
         etCardName = view.findViewById(R.id.etCardName);
         btnCreate = view.findViewById(R.id.btnCreateCard);
-        btnCancel = view.findViewById(R.id.btnCancelCard);
+
         tvTitle = view.findViewById(R.id.tvDialogTitle);
     }
 
