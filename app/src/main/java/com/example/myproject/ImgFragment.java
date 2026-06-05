@@ -82,9 +82,7 @@ public class ImgFragment extends DialogFragment {
         btnRotate.setOnClickListener(v -> {
             if (currentBitmap != null) {
                 rotateBitmap(90);
-                Toast.makeText(getContext(), "Поворот на +90°", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(getContext(), "Сначала выберите изображение", Toast.LENGTH_SHORT).show();
+
             }
         });
 
@@ -95,8 +93,6 @@ public class ImgFragment extends DialogFragment {
                     listener.onImageAdded(imageBase64);
                 }
                 dismiss();
-            } else {
-                Toast.makeText(getContext(), "Выберите изображение", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -134,10 +130,10 @@ public class ImgFragment extends DialogFragment {
 
                     ivPreview.setImageBitmap(currentBitmap);
                     ivPreview.setVisibility(View.VISIBLE);
-                    Toast.makeText(getContext(), "Изображение загружено", Toast.LENGTH_SHORT).show();
+
                 } catch (IOException e) {
                     e.printStackTrace();
-                    Toast.makeText(getContext(), "Ошибка загрузки изображения", Toast.LENGTH_SHORT).show();
+
                 }
             }
         }
@@ -153,7 +149,7 @@ public class ImgFragment extends DialogFragment {
             return bitmap;
         }
 
-        // Масштабируем только по высоте, ширина будет пропорциональной
+
         float ratio = (float) maxHeight / height;
         int newWidth = Math.round(width * ratio);
         int newHeight = maxHeight;
@@ -171,7 +167,7 @@ public class ImgFragment extends DialogFragment {
 
         currentRotation += degrees;
 
-        // После поворота снова проверяем высоту
+
         currentBitmap = scaleBitmapIfNeeded(currentBitmap);
         ivPreview.setImageBitmap(currentBitmap);
     }

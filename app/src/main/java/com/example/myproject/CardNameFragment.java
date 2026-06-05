@@ -65,7 +65,7 @@ public class CardNameFragment extends DialogFragment {
             }
         });
 
-        btnCancel.setOnClickListener(v -> dismiss());
+
     }
 
     @Override
