@@ -154,8 +154,10 @@ public class RedactCardActivity extends AppCompatActivity {
 
     private View createViewFromItem(CardItem item) {
         if (item.type.equals("text")) {
+            // Текст с поддержкой формул через $...$ (inline режим)
             return createTextView(item.content);
         } else if (item.type.equals("formula")) {
+            // Отдельная формула (центрированный режим)
             return createFormulaView(item.content);
         } else if (item.type.equals("image")) {
             return createImageView(item.content);
@@ -173,14 +175,18 @@ public class RedactCardActivity extends AppCompatActivity {
             if (child.getVisibility() == View.INVISIBLE) continue;
 
             CardItem item = new CardItem();
-            if (child instanceof TextView) {
-                item.type = "text";
-                item.content = ((TextView) child).getText().toString();
-                currentItems.add(item);
-            } else if (child instanceof WebView) {
-                item.type = "formula";
+            if (child instanceof WebView) {
+                // Определяем тип WebView по тегу или по наличию formula/text в типе
                 Object tag = child.getTag();
-                item.content = (tag instanceof String) ? (String) tag : "";
+                String content = (tag instanceof String) ? (String) tag : "";
+
+                // Проверяем, является ли это текстом с формулами или отдельной формулой
+                if (child.getTag(R.id.view_type) != null && "formula".equals(child.getTag(R.id.view_type))) {
+                    item.type = "formula";
+                } else {
+                    item.type = "text";
+                }
+                item.content = content;
                 currentItems.add(item);
             } else if (child instanceof ImageView) {
                 item.type = "image";
@@ -211,7 +217,6 @@ public class RedactCardActivity extends AppCompatActivity {
                 cardTitle = card.title;
                 tvCardTitle.setText(cardTitle);
 
-                // Загружаем вопрос и ответ из JSON
                 if (card.question != null && !card.question.isEmpty()) {
                     loadItemsFromJson(card.question, questionItems);
                 }
@@ -238,7 +243,6 @@ public class RedactCardActivity extends AppCompatActivity {
                 items.add(item);
             }
         } catch (JSONException e) {
-            // Если не JSON, загружаем как обычный текст (для обратной совместимости)
             Log.e(TAG, "Error parsing JSON, loading as text", e);
             CardItem item = new CardItem();
             item.type = "text";
@@ -297,63 +301,20 @@ public class RedactCardActivity extends AppCompatActivity {
         return isQuestionSide ? questionContainer : answerContainer;
     }
 
-    // ─── Text ─────────────────────────────────────────────────────────────────
+    // ─── Text (с поддержкой формул через $...$, inline режим) ─────────────────
 
-    private TextView createTextView(String text) {
-        TextView tv = new TextView(this);
-        tv.setText(text);
-        tv.setTextSize(20f);
-        tv.setPadding(16, 12, 16, 12);
+    private WebView createTextView(String text) {
+        WebView wv = KaTeXWebView_inline.create(this);
+        KaTeXWebView_inline.render(wv, text);
+        wv.setTag(text);
+        wv.setTag(R.id.view_type, "text"); // помечаем как текст
+
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.setMargins(16, 0, 16, 8);
-        tv.setLayoutParams(lp);
-
-        tv.setOnClickListener(v -> openTextRedactDialog(tv));
-        return tv;
-    }
-
-    private void openTextDialog() {
-        TextFragment dialog = new TextFragment();
-        dialog.setOnTextAddedListener(text -> {
-            TextView tv = createTextView(text);
-            getCurrentContainer().addView(tv);
-            autoSave();
-        });
-        dialog.show(getSupportFragmentManager(), "text_dialog");
-    }
-
-    private void openTextRedactDialog(TextView tv) {
-        TextRedactFragment dialog = new TextRedactFragment();
-        Bundle args = new Bundle();
-        args.putString("initial_text", tv.getText().toString());
-        dialog.setArguments(args);
-        dialog.setOnTextChangedListener(newText -> {
-            tv.setText(newText);
-            autoSave();
-        });
-        dialog.setOnDeleteListener(() -> {
-            ((LinearLayout) tv.getParent()).removeView(tv);
-            autoSave();
-        });
-        dialog.show(getSupportFragmentManager(), "text_redact_dialog");
-    }
-
-    // ─── Formula ──────────────────────────────────────────────────────────────
-
-    private WebView createFormulaView(String latex) {
-        WebView wv = KaTeXWebView.create(this);
-        KaTeXWebView.render(wv, latex);
-        wv.setTag(latex);
-
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                300);
-        lp.setMargins(16, 0, 16, 8);
         wv.setLayoutParams(lp);
 
-        // Убираем фон и делаем прозрачным для слияния с карточкой
         wv.setBackgroundColor(android.graphics.Color.TRANSPARENT);
         wv.setLayerType(WebView.LAYER_TYPE_SOFTWARE, null);
 
@@ -362,8 +323,64 @@ public class RedactCardActivity extends AppCompatActivity {
         webSettings.setBuiltInZoomControls(true);
         webSettings.setDisplayZoomControls(false);
 
-        int scale = calculateScaleForLatex(latex);
-        wv.setInitialScale(scale);
+        wv.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                openTextRedactDialog(wv);
+            }
+            return true;
+        });
+        return wv;
+    }
+
+    private void openTextDialog() {
+        TextFragment dialog = new TextFragment();
+        dialog.setOnFormulaAddedListener(text -> {
+            WebView wv = createTextView(text);
+            getCurrentContainer().addView(wv);
+            autoSave();
+        });
+        dialog.show(getSupportFragmentManager(), "text_dialog");
+    }
+
+    private void openTextRedactDialog(WebView wv) {
+        TextRedactFragment dialog = new TextRedactFragment();
+        Bundle args = new Bundle();
+        String currentText = wv.getTag() instanceof String ? (String) wv.getTag() : "";
+        args.putString("initial_form", currentText);
+        dialog.setArguments(args);
+        dialog.setOnFormulaAddedListener(text -> {
+            wv.setTag(text);
+            KaTeXWebView_inline.render(wv, text);
+            autoSave();
+        });
+        dialog.setOnDeleteListener(() -> {
+            ((LinearLayout) wv.getParent()).removeView(wv);
+            autoSave();
+        });
+        dialog.show(getSupportFragmentManager(), "text_redact_dialog");
+    }
+
+    // ─── Formula (отдельная формула, центрированный режим) ────────────────────
+
+    private WebView createFormulaView(String latex) {
+        WebView wv = KaTeXWebView.create(this);
+        KaTeXWebView.render(wv, latex);
+        wv.setTag(latex);
+        wv.setTag(R.id.view_type, "formula"); // помечаем как формулу
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.setMargins(16, 0, 16, 8);
+        wv.setLayoutParams(lp);
+
+        wv.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        wv.setLayerType(WebView.LAYER_TYPE_SOFTWARE, null);
+
+        WebSettings webSettings = wv.getSettings();
+        webSettings.setSupportZoom(true);
+        webSettings.setBuiltInZoomControls(true);
+        webSettings.setDisplayZoomControls(false);
 
         wv.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_UP) {
@@ -372,45 +389,6 @@ public class RedactCardActivity extends AppCompatActivity {
             return true;
         });
         return wv;
-    }
-
-    private int calculateScaleForLatex(String latex) {
-        if (latex == null || latex.isEmpty()) return 250;
-        int significantChars = countSignificantLatexChars(latex);
-        if (significantChars <= 20) return 250;
-        else if (significantChars <= 40) return 225;
-        else if (significantChars <= 60) return 200;
-        else if (significantChars <= 80) return 175;
-        else if (significantChars <= 100) return 150;
-        else return 125;
-    }
-
-    private int countSignificantLatexChars(String latex) {
-        int count = 0;
-        int i = 0;
-        int length = latex.length();
-        while (i < length) {
-            char c = latex.charAt(i);
-            if (c == '\\') {
-                i++;
-                while (i < length && Character.isLetter(latex.charAt(i))) i++;
-                if (i < length && latex.charAt(i) == ' ') i++;
-                continue;
-            }
-            if (Character.isWhitespace(c) || c == '{' || c == '}') {
-                i++;
-                continue;
-            }
-            if (Character.isLetterOrDigit(c) || c == '+' || c == '-' || c == '*' || c == '/' ||
-                    c == '=' || c == '<' || c == '>' || c == '^' || c == '_' || c == '[' ||
-                    c == ']' || c == '(' || c == ')' || c == '|' || c == '&' || c == '!' ||
-                    c == '?' || c == '~' || c == ',' || c == '.' || c == ';' || c == ':' ||
-                    c == '@' || c == '#' || c == '$' || c == '%') {
-                count++;
-            }
-            i++;
-        }
-        return count;
     }
 
     private void openFormulaDialog() {

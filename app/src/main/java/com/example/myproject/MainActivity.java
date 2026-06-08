@@ -101,8 +101,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showCreateDeckDialog() {
-        CardNameFragment dialog = new CardNameFragment();
-        dialog.setOnCardNameListener(deckName -> {
+        DeckNameFragment dialog = new DeckNameFragment();
+        dialog.setOnDeckNameListener(deckName -> {
             long deckId = dbHelper.saveDeck(deckName);
             if (deckId != -1) {
                 Intent intent = new Intent(this, CreateDeckActivity.class);

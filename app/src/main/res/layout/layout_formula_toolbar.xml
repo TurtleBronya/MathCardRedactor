@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#f5f5f5"
+    android:elevation="4dp">
+
+    <!-- Основная панель с кнопками -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
+
+            <!-- Кнопка доллара (формула) -->
+            <Button
+                android:id="@+id/btnDollar"
+                style="@style/FormulaToolbarButton"
+                android:text="$" />
+
+            <!-- Кнопка обратного слеша -->
+            <Button
+                android:id="@+id/btnBackslash"
+                style="@style/FormulaToolbarButton"
+                android:text="\\" />
+
+            <!-- Кнопка фигурной скобки открывающей -->
+            <Button
+                android:id="@+id/btnBraceOpen"
+                style="@style/FormulaToolbarButton"
+                android:text="{" />
+
+            <!-- Кнопка фигурной скобки закрывающей -->
+            <Button
+                android:id="@+id/btnBraceClose"
+                style="@style/FormulaToolbarButton"
+                android:text="}" />
+
+            <!-- Разделитель -->
+            <View style="@style/ToolbarDivider" />
+
+            <!-- Кнопка нижнего подчеркивания (индекс) -->
+            <Button
+                android:id="@+id/btnUnderscore"
+                style="@style/FormulaToolbarButton"
+                android:text="_" />
+
+            <!-- Кнопка крышки (степень) -->
+            <Button
+                android:id="@+id/btnHat"
+                style="@style/FormulaToolbarButton"
+                android:text="^" />
+
+            <!-- Кнопка равно -->
+            <Button
+                android:id="@+id/btnEquals"
+                style="@style/FormulaToolbarButton"
+                android:text="=" />
+
+            <!-- Разделитель -->
+            <View style="@style/ToolbarDivider" />
+
+            <!-- Кнопка открывающей скобки -->
+            <Button
+                android:id="@+id/btnParenOpen"
+                style="@style/FormulaToolbarButton"
+                android:text="(" />
+
+            <!-- Кнопка закрывающей скобки -->
+            <Button
+                android:id="@+id/btnParenClose"
+                style="@style/FormulaToolbarButton"
+                android:text=")" />
+
+            <!-- Кнопка квадратной скобки открывающей -->
+            <Button
+                android:id="@+id/btnBracketOpen"
+                style="@style/FormulaToolbarButton"
+                android:text="[" />
+
+            <!-- Кнопка квадратной скобки закрывающей -->
+            <Button
+                android:id="@+id/btnBracketClose"
+                style="@style/FormulaToolbarButton"
+                android:text="]" />
+
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- Вторая панель с шаблонами формул -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:scrollbars="none"
+        android:background="#eeeeee">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
+
+            <!-- Кнопка дроби -->
+            <Button
+                android:id="@+id/btnFraction"
+                style="@style/FormulaToolbarButtonSmall"
+                android:text="\\frac{}{}" />
+
+            <!-- Кнопка квадратного корня -->
+            <Button
+                android:id="@+id/btnSqrt"
+                style="@style/FormulaToolbarButtonSmall"
+                android:text="\\sqrt{}" />
+
+            <!-- Кнопка суммы -->
+            <Button
+                android:id="@+id/btnSum"
+                style="@style/FormulaToolbarButtonSmall"
+                android:text="\\sum_{}^{}" />
+
+            <!-- Кнопка интеграла -->
+            <Button
+                android:id="@+id/btnIntegral"
+                style="@style/FormulaToolbarButtonSmall"
+                android:text="\\int_{}^{}" />
+
+            <!-- Разделитель -->
+            <View style="@style/ToolbarDividerSmall" />
+
+            <!-- Кнопка предела -->
+            <Button
+                android:id="@+id/btnLimit"
+                style="@style/FormulaToolbarButtonSmall"
+                android:text="\\lim_{}" />
+
+            <!-- Кнопка произведения -->
+            <Button
+                android:id="@+id/btnProd"
+                style="@style/FormulaToolbarButtonSmall"
+                android:text="\\prod_{}^{}" />
+
+            <!-- Кнопка греческих букв -->
+            <Button
+                android:id="@+id/btnGreek"
+                style="@style/FormulaToolbarButtonSmall"
+                android:text="αβγ" />
+
+        </LinearLayout>
+    </HorizontalScrollView>
+
+</LinearLayout>

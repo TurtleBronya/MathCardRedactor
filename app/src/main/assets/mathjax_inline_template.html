@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <style>
+        body {
+            margin: 0;
+            padding: 8px;
+            background-color: transparent;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 18px;
+            text-align: left;
+        }
+        .katex {
+            font-size: 1.1em;
+            text-align: left;
+        }
+        .katex-display {
+            margin: 0;
+            text-align: left;
+            display: inline-block;
+        }
+    </style>
+    <link rel="stylesheet" href="katex.min.css">
+    <script src="katex.min.js"></script>
+</head>
+<body>
+<div id="formula" style="display: inline-block; text-align: left;">$$formula$$</div>
+<script>
+    var formulaText = document.getElementById('formula').innerHTML;
+    var element = document.getElementById('formula');
+    element.innerHTML = '';
+
+    try {
+        katex.render(formulaText, element, {
+            displayMode: false,
+            throwOnError: false
+        });
+    } catch(e) {
+        element.innerHTML = '<span style="color: red;">' + formulaText + '</span>';
+    }
+</script>
+</body>
+</html>

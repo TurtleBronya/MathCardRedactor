@@ -16,13 +16,31 @@
         android:layout_marginBottom="12dp"/>
 
     <EditText
-        android:id="@+id/editTextContent"
+        android:id="@+id/editLatex"
         android:layout_width="match_parent"
-        android:layout_height="120dp"
+        android:layout_height="80dp"
         android:gravity="top"
-        android:hint="Введите текст..."
+        android:hint="\frac{a}{b} + \sqrt{c}"
+        android:fontFamily="monospace"
         android:background="@drawable/edit_bg"
         android:padding="10dp"/>
+
+    <Button
+        android:id="@+id/btnPreview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Предпросмотр"
+        android:textColor="@color/blue"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+
+    <!-- Заменили TextView на WebView для KaTeX-рендера -->
+    <WebView
+        android:id="@+id/wvLatexPreview"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/edit_bg"/>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -38,7 +56,6 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Добавить"
-            android:backgroundTint="@color/blue"
-            />
+            android:backgroundTint="@color/blue"/>
     </LinearLayout>
 </LinearLayout>
